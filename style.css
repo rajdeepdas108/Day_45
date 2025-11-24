@@ -5,28 +5,28 @@
 
 :root {
   /* Default (Modern) Variables */
-  --bg-gradient: linear-gradient(135deg, #eef2f8 0%, #dbe6f5 100%);
-  --card-bg: rgba(255, 255, 255, 0.75);
-  --glass-bg: rgba(255, 255, 255, 0.4);
-  --text: #1f2937;
-  --text-muted: #586578;
+  --bg-gradient: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80') center/cover no-repeat fixed;
+  --card-bg: rgba(255, 255, 255, 0.65);
+  --glass-bg: rgba(255, 255, 255, 0.55);
+  --text: #1d1d1f;
+  --text-muted: #86868b;
   --accent: #007aff;
   --success: #34c759;
   --danger: #ff3b30;
   
-  --glass-border: rgba(255, 255, 255, 0.6);
-  --shadow-light: -8px -8px 20px rgba(255, 255, 255, 0.95);
-  --shadow-dark: 8px 8px 20px rgba(166, 180, 200, 0.5);
-  --shadow-window: 0px 30px 60px rgba(0, 50, 120, 0.25);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --shadow-light: -8px -8px 20px rgba(255, 255, 255, 0.8);
+  --shadow-dark: 8px 8px 20px rgba(0, 0, 0, 0.1);
+  --shadow-window: 0px 24px 48px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.4) inset;
   
   --font-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-text: 'SF Pro Text', -apple-system, BlinkMacSystemFont, sans-serif;
   
-  --radius-window: 24px;
-  --radius-card: 20px;
-  --radius-btn: 14px;
+  --radius-window: 20px;
+  --radius-card: 16px;
+  --radius-btn: 12px;
   
-  --backdrop-blur: 30px;
+  --backdrop-blur: 50px;
 }
 
 /* Classic Neumorphism Overrides */
@@ -111,29 +111,31 @@ body {
 /* macOS Window Container */
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--backdrop-blur)) saturate(180%);
   -webkit-backdrop-filter: blur(var(--backdrop-blur)) saturate(180%);
-  border: 1px solid var(--glass-border);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: var(--radius-window);
-  box-shadow: var(--shadow-window), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-window);
   padding: 0;
-  overflow: visible; /* Changed from hidden to allow 3D elements to pop out and receive clicks */
+  overflow: visible;
   animation: fadeIn 0.8s cubic-bezier(0.19, 1, 0.22, 1);
   display: flex;
   flex-direction: column;
   
   /* 3D Floating Effect */
-  transform: rotateX(1deg) scale(0.98); /* Reduced rotation slightly for better usability */
+  transform: rotateX(1deg) scale(0.98);
   transform-origin: center 30%;
   transform-style: preserve-3d;
   transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  will-change: transform;
+  contain: layout;
 }
 
 .container:hover {
   transform: rotateX(0deg) scale(1);
-  box-shadow: 0 50px 100px -20px rgba(50, 50, 93, 0.25), 0 30px 60px -30px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 }
 
 /* Window Title Bar */
@@ -209,7 +211,7 @@ h1 {
 
 /* Sidebar (Left Panel) */
 .left {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.15); /* Increased opacity for sidebar distinction */
   border-right: 1px solid var(--glass-border);
   padding: 30px;
   display: flex;
@@ -217,6 +219,8 @@ h1 {
   gap: 24px;
   transform: translateZ(10px);
   transform-style: preserve-3d;
+  backdrop-filter: blur(10px); /* Subtle nested blur for depth */
+  contain: layout;
 }
 
 /* Content Area (Right Panel) */
@@ -226,6 +230,7 @@ h1 {
   background: transparent;
   transform: translateZ(10px);
   transform-style: preserve-3d;
+  contain: layout;
 }
 
 /* Top Row (Date & Total) */
@@ -238,7 +243,8 @@ h1 {
   padding: 16px 20px;
   border-radius: var(--radius-card);
   border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(10px);
 }
 
 .date-box {
@@ -264,11 +270,12 @@ h1 {
 
 /* Sidebar Sections */
 .today-box, .motivation-box, .summary-box, .tools-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--card-bg);
   padding: 20px;
   border-radius: var(--radius-card);
   border: 1px solid var(--glass-border);
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
 .motivation {
@@ -307,74 +314,140 @@ h1 {
   letter-spacing: -0.02em;
 }
 
-/* Neumorphic Cards */
+/* Neumorphic Cards -> Glass Cards */
 .card-neumorph {
-  background: var(--card-bg);
+  background: rgba(255, 255, 255, 0.4);
   border-radius: var(--radius-card);
   padding: 20px;
-  box-shadow: var(--shadow-dark), var(--shadow-light);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .card-neumorph:hover {
   transform: translateY(-6px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.6);
   z-index: 10;
 }
 
-/* Buttons */
+/* Buttons - Tactile & Real 3D */
 .btn {
   font-family: var(--font-text);
   font-size: 13px;
   font-weight: 600;
-  padding: 10px 18px;
+  padding: 10px 20px;
   border-radius: var(--radius-btn);
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-bottom-color: rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  background: var(--card-bg);
+  
+  /* Real Glass/Plastic Feel */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.4) 100%);
   color: var(--text);
-  box-shadow: var(--shadow-dark), var(--shadow-light);
-  transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+  
+  /* Depth Shadows */
+  box-shadow: 
+    0 4px 6px rgba(0, 0, 0, 0.05), 
+    0 1px 0 rgba(255, 255, 255, 0.8) inset, 
+    0 -1px 0 rgba(0, 0, 0, 0.05) inset;
+    
+  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy spring */
+  
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-  border-left: 1px solid rgba(255, 255, 255, 0.8);
   position: relative;
-  z-index: 50; /* Ensure buttons are clickable */
-  transform: translateZ(20px); /* Pop out to ensure clickability */
+  z-index: 100; /* High Z-index for clickability */
+  transform: translateZ(30px); /* Lifted up for 3D clickability */
   transform-style: preserve-3d;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  will-change: transform;
 }
 
 .btn:hover {
-  transform: translateZ(20px) translateY(-2px);
-  color: var(--accent);
+  transform: translateZ(35px) translateY(-2px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.5) 100%);
+  box-shadow: 
+    0 8px 15px rgba(0, 0, 0, 0.1), 
+    0 1px 0 rgba(255, 255, 255, 0.9) inset;
 }
 
 .btn:active, .btn.active {
-  transform: translateZ(20px) scale(0.97);
-  box-shadow: inset 3px 3px 8px rgba(166, 180, 200, 0.5), inset -3px -3px 8px rgba(255, 255, 255, 0.9);
-  background: rgba(0,0,0,0.02);
-  border-color: transparent;
+  transform: translateZ(20px) translateY(1px); /* Push down effect */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.3) 100%);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.05), 
+    0 2px 4px rgba(0, 0, 0, 0.05) inset; /* Inner shadow for pressed look */
+}
+
+/* Primary Action Buttons (Start/Pause) */
+#startBtn {
+  background: linear-gradient(180deg, #34c759 0%, #248a3d 100%);
+  color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 4px 10px rgba(52, 199, 89, 0.3), 
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+#startBtn:hover {
+  background: linear-gradient(180deg, #3ce065 0%, #2db34e 100%);
+  box-shadow: 
+    0 8px 20px rgba(52, 199, 89, 0.4), 
+    0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+
+#pauseBtn {
+  background: linear-gradient(180deg, #ff9500 0%, #c47200 100%);
+  color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow: 
+    0 4px 10px rgba(255, 149, 0, 0.3), 
+    0 1px 0 rgba(255, 255, 255, 0.3) inset;
+}
+
+#pauseBtn:hover {
+  background: linear-gradient(180deg, #ffaa33 0%, #e08500 100%);
+  box-shadow: 
+    0 8px 20px rgba(255, 149, 0, 0.4), 
+    0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .btn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 0 rgba(255, 255, 255, 0.1) inset;
+}
+
+[data-theme="dark"] .btn:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
 }
 
 [data-theme="dark"] .btn:active {
-  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.3), inset -2px -2px 5px rgba(255,255,255,0.05);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.1) 100%);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);
 }
 
 .btn.ghost {
   background: transparent;
   box-shadow: none;
-  border: none;
+  border: 1px solid transparent;
 }
 
 .btn.ghost:hover {
   background: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.1);
   transform: none;
+  box-shadow: none;
 }
 
 /* Timer */
@@ -427,10 +500,10 @@ h1 {
   background: var(--card-bg);
   border-radius: var(--radius-card);
   padding: 16px;
-  box-shadow: var(--shadow-dark), var(--shadow-light);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-top: 1px solid rgba(255, 255, 255, 0.8);
-  border-left: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   display: flex;
   flex-direction: column;
@@ -438,11 +511,13 @@ h1 {
   min-height: 110px;
   transform-style: preserve-3d;
   transform: translateZ(0);
+  will-change: transform;
 }
 
 .day-card:hover {
   transform: translateY(-8px) scale(1.05) translateZ(30px);
   border-color: var(--accent);
+  background: var(--card-bg);
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--accent);
   z-index: 5;
 }
@@ -480,8 +555,9 @@ h1 {
   background: var(--card-bg);
   border-radius: var(--radius-card);
   padding: 20px;
-  box-shadow: var(--shadow-dark), var(--shadow-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
   height: 300px;
   position: relative;
 }
@@ -499,14 +575,15 @@ h1 {
   border-radius: var(--radius-card);
   padding: 20px;
   text-align: center;
-  box-shadow: var(--shadow-dark), var(--shadow-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
 }
 
 /* Inputs */
 input[type="date"] {
-  background: var(--bg-gradient);
-  border: none;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   padding: 12px 16px;
   border-radius: 16px;
   color: var(--text);
@@ -516,11 +593,11 @@ input[type="date"] {
   outline: none;
   transition: all 0.2s ease;
   cursor: pointer;
-  box-shadow: inset 3px 3px 7px rgba(166, 180, 200, 0.5), 
-              inset -3px -3px 7px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 50;
   transform: translateZ(20px);
+  backdrop-filter: blur(5px);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -534,21 +611,21 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 
 input[type="date"]:hover {
-  box-shadow: inset 4px 4px 9px rgba(166, 180, 200, 0.6), 
-              inset -4px -4px 9px rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 input[type="date"]:focus {
-  box-shadow: inset 4px 4px 9px rgba(166, 180, 200, 0.6), 
-              inset -4px -4px 9px rgba(255, 255, 255, 0.9),
-              0 0 0 2px var(--accent);
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 0 0 2px var(--accent);
+  border-color: var(--accent);
 }
 
 [data-theme="dark"] input[type="date"] {
-  background: rgba(20, 20, 25, 0.6);
+  background: rgba(0, 0, 0, 0.3);
   color: #fff;
-  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.6), 
-              inset -2px -2px 6px rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
@@ -556,10 +633,8 @@ input[type="date"]:focus {
 }
 
 [data-theme="dark"] input[type="date"]:focus {
-  background: rgba(20, 20, 25, 0.8);
-  box-shadow: inset 3px 3px 8px rgba(0, 0, 0, 0.8), 
-              inset -2px -2px 6px rgba(255, 255, 255, 0.05),
-              0 0 0 2px var(--accent);
+  background: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--accent);
 }
 
 /* Footer */
