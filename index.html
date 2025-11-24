@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>45-Day Study Challenge — 8 Hours/Day Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Firebase SDKs (Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="container" id="app">
+    <header>
+      <h1>45-Day Study Challenge — 8 hrs/day</h1>
+      <div class="controls">
+        <button id="notifyBtn" class="btn ghost">🔔 Reminders: Off</button>
+        <button id="themeBtn" class="btn ghost">Theme</button>
+        <button id="resetBtn" class="btn">Reset Challenge</button>
+      </div>
+    </header>
+
+    <div class="main">
+      <aside class="left">
+        <div class="timer" id="displayTimer">00:00:00</div>
+        <div class="small">Today: <span id="todayLabel"></span></div>
+        <div class="timer-controls">
+          <button id="startBtn" class="btn">Start</button>
+          <button id="pauseBtn" class="btn">Pause</button>
+          <button id="resetTimerBtn" class="btn">Reset Timer</button>
+        </div>
+
+        <div class="today-box">
+          <div class="small">Today's hours</div>
+          <div class="today-hours" id="todayHours">0.00 hrs</div>
+          <div class="progress"><i id="hourProgress"></i></div>
+          <div class="small">Goal: 8.00 hrs</div>
+
+          <div class="flex-btns">
+            <button id="markComplete" class="btn">Mark Complete</button>
+            <button id="manualEdit" class="btn">Edit Day</button>
+          </div>
+        </div>
+
+        <div class="motivation-box">
+          <div class="small">Motivation</div>
+          <div class="motivation" id="motivation">You got this — start now!</div>
+        </div>
+
+        <div class="summary-box">
+          <div class="small">Challenge progress</div>
+          <div class="big-number" id="daysCompleted">0 / 45 days</div>
+          <div class="small">Streak: <span id="streak">0</span> | Longest: <span id="longest">0</span></div>
+        </div>
+
+        <div class="tools-box">
+          <div class="small">Tools</div>
+          <div class="flex-btns">
+            <button id="exportCsvBtn" class="btn">Export CSV</button>
+            <button id="exportPdfBtn" class="btn">Print / PDF</button>
+          </div>
+        </div>
+      </aside>
+
+      <section class="right">
+        <div class="top-row">
+          <div class="date-box">
+            <label class="small">Start Date:</label>
+            <input type="date" id="startDateInput" />
+            <button id="setStartBtn" class="btn">Set</button>
+          </div>
+          <div class="total-box">
+            <div class="small">Total hours</div>
+            <div class="big-number" id="totalHours">0.00 hrs</div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <canvas id="progressChart"></canvas>
+        </div>
+
+        <div class="grid" id="daysGrid"></div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="small">Avg/day</div>
+            <div class="big-number" id="avgDay">0.00 hrs</div>
+          </div>
+
+          <div class="stat">
+            <div class="small">Best day</div>
+            <div class="big-number" id="bestDay">-</div>
+          </div>
+
+          <div class="stat">
+            <div class="small">Completion %</div>
+            <div class="big-number" id="percent">0%</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>Built for focus • Offline support • Data stored locally</footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
