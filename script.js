@@ -243,9 +243,9 @@ function renderChart() {
   const labels = Array.from({ length: DAYS }, (_, i) => `Day ${i + 1}`);
   const data = state.days.map((sec) => toHours(sec));
 
-  const color = state.theme === "dark" ? "#63b3ed" : "#3182ce";
+  const color = state.theme === "dark" ? "#5fb0ff" : "#007aff";
   const gridColor = state.theme === "dark" ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)";
-  const textColor = state.theme === "dark" ? "#e2e8f0" : "#4a5568";
+  const textColor = state.theme === "dark" ? "#e2e8f0" : "#1f2937";
 
   if (chartInstance) {
     chartInstance.data.datasets[0].data = data;
@@ -268,8 +268,8 @@ function renderChart() {
             backgroundColor: color,
             borderColor: color,
             borderWidth: 0,
-            borderRadius: 4,
-            hoverBackgroundColor: state.theme === "dark" ? "#90cdf4" : "#63b3ed",
+            borderRadius: 6,
+            hoverBackgroundColor: state.theme === "dark" ? "#8ec8ff" : "#005ecb",
           },
         ],
       },
@@ -679,6 +679,12 @@ function bindUI() {
     saveState();
   };
 
+  _("#styleBtn").onclick = () => {
+    state.design = state.design === "modern" ? "classic" : "modern";
+    applyDesign();
+    saveState();
+  };
+
   _("#setStartBtn").onclick = () => {
     const val = _("#startDateInput").value;
     if (!val) return;
@@ -705,9 +711,15 @@ function bindUI() {
 // Initialization
 // =============================
 
+function applyDesign() {
+  document.body.setAttribute("data-design", state.design || "modern");
+  _("#styleBtn").textContent = state.design === "classic" ? "🎨 Style: Classic" : "🎨 Style: Modern";
+}
+
 function init() {
   loadState();
   applyTheme();
+  applyDesign();
   _("#startDateInput").value = state.startDate;
   loadTodayTimer();
   updateSummary();
