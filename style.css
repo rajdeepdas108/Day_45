@@ -128,7 +128,7 @@ body {
   transform: rotateX(1deg) scale(0.98);
   transform-origin: center 30%;
   transform-style: preserve-3d;
-  transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.6s cubic-bezier(0.23, 1, 0.32, 1);
   will-change: transform;
   contain: layout;
 }
@@ -219,7 +219,6 @@ h1 {
   gap: 24px;
   transform: translateZ(10px);
   transform-style: preserve-3d;
-  backdrop-filter: blur(10px); /* Subtle nested blur for depth */
   contain: layout;
 }
 
@@ -244,7 +243,6 @@ h1 {
   border-radius: var(--radius-card);
   border: 1px solid var(--glass-border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(10px);
 }
 
 .date-box {
@@ -321,8 +319,7 @@ h1 {
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(10px);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.4s ease;
 }
 
 .card-neumorph:hover {
@@ -353,7 +350,7 @@ h1 {
     0 1px 0 rgba(255, 255, 255, 0.8) inset, 
     0 -1px 0 rgba(0, 0, 0, 0.05) inset;
     
-  transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy spring */
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   
   display: inline-flex;
   align-items: center;
@@ -362,8 +359,6 @@ h1 {
   z-index: 100; /* High Z-index for clickability */
   transform: translateZ(30px); /* Lifted up for 3D clickability */
   transform-style: preserve-3d;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   will-change: transform;
 }
@@ -502,9 +497,7 @@ h1 {
   padding: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.4s ease, border-color 0.4s ease;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -557,7 +550,6 @@ h1 {
   padding: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(10px);
   height: 300px;
   position: relative;
 }
@@ -577,7 +569,6 @@ h1 {
   text-align: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(10px);
 }
 
 /* Inputs */
@@ -591,13 +582,12 @@ input[type="date"] {
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
   z-index: 50;
   transform: translateZ(20px);
-  backdrop-filter: blur(5px);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
