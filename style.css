@@ -513,6 +513,15 @@ h1 {
   box-shadow: none;
 }
 
+/* Sync Button Special Hover */
+#syncBtn:hover {
+  background: linear-gradient(180deg, rgba(0, 122, 255, 0.2) 0%, rgba(0, 122, 255, 0.1) 100%);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: var(--accent);
+  box-shadow: 0 8px 20px rgba(0, 122, 255, 0.2);
+  transform: translateY(-2px);
+}
+
 /* Timer */
 .timer {
   font-family: var(--font-display);

@@ -12,10 +12,11 @@ const STORAGE_KEY = "study45_state_v2";
 const firebaseConfig = {
   apiKey: "AIzaSyA7HDA2OuN4QijPd1Jakdk6MfkwRO9MHJ0",
   authDomain: "day45-ddf57.firebaseapp.com",
+  databaseURL: "https://day45-ddf57-default-rtdb.firebaseio.com",
   projectId: "day45-ddf57",
   storageBucket: "day45-ddf57.firebasestorage.app",
   messagingSenderId: "443505111604",
-  appId: "1:443505111604:web:a6595a25698bf638ded061"
+  appId: "1:443505111604:web:bbc165c328fe6643ded061"
 };
 
 // Initialize Firebase
@@ -102,17 +103,61 @@ function saveState() {
 
 function initAuth() {
   if (!auth) return;
-  auth.signInAnonymously().catch((error) => {
-    console.error("Auth Error:", error);
-  });
-
+  
   auth.onAuthStateChanged((user) => {
     if (user) {
       userUid = user.uid;
       console.log("Signed in as", userUid);
+      
+      const btn = _("#syncBtn");
+      if (user.isAnonymous) {
+          btn.textContent = "☁️ Sync (Guest)";
+          btn.onclick = signInWithGoogle;
+      } else {
+          btn.textContent = `☁️ ${user.displayName || 'Synced'}`;
+          btn.onclick = signOut;
+      }
+      
       loadFromCloud();
+    } else {
+      // RECOVERY MODE: Use specific UID provided by user
+      userUid = "hSNGrrwHrugwuLAeuxYEaWygpGC3";
+      console.log("Using recovery UID:", userUid);
+      loadFromCloud();
+      
+      const btn = _("#syncBtn");
+      btn.textContent = "☁️ Recovery Mode";
+      btn.onclick = signInWithGoogle; // Allow upgrading to real account
     }
   });
+}
+
+function signInWithGoogle() {
+    const btn = _("#syncBtn");
+    if (btn.disabled) return; // Prevent double clicks
+    
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "⏳ ...";
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+    .then(() => {
+        // Success is handled by onAuthStateChanged
+        btn.disabled = false;
+    })
+    .catch(error => {
+        console.error("Login failed:", error);
+        alert("Login failed: " + error.message);
+        btn.disabled = false;
+        btn.textContent = originalText;
+    });
+}
+
+function signOut() {
+    if(confirm("Sign out? You will return to guest mode.")) {
+        auth.signOut();
+    }
 }
 
 function loadFromCloud() {
@@ -126,7 +171,7 @@ function loadFromCloud() {
         console.log("Cloud data is newer, syncing...");
         state = { ...state, ...remote };
         saveState(); // Update local storage
-        init(); // Re-render UI
+        renderAll(); // Re-render UI
       } else {
         console.log("Local data is newer or same.");
       }
@@ -1059,19 +1104,7 @@ function bindUI() {
   _("#exportCsvBtn").onclick = exportCSV;
   _("#exportPdfBtn").onclick = exportPDF;
 
-  // Save state before closing to prevent data loss
-  window.addEventListener("beforeunload", () => {
-      if (timer.running) {
-          const idx = getTodayIndex();
-          if (idx !== null) {
-              state.days[idx] = timer.sec;
-              // Update timer state one last time
-              state.timerState.startTotalSeconds = timer.sec;
-              state.timerState.startTime = Date.now(); // Reset start time to now so resume works correctly
-          }
-      }
-      saveState();
-  });
+    // (beforeunload listener moved to `init()` to avoid duplicate registrations)
 }
 
 // =============================
@@ -1083,39 +1116,55 @@ function applyDesign() {
   _("#styleBtn").textContent = state.design === "classic" ? "🎨 Style: Classic" : "🎨 Style: Modern";
 }
 
-function init() {
-  loadState();
-  backfillForest(); // Ensure past completed days have trees
+function renderAll() {
   applyTheme();
   applyDesign();
   _("#startDateInput").value = state.startDate;
   loadTodayTimer();
   updateSummary();
-  renderTodayTree(); // Initial render
-  bindUI();
-  rotateMotivation();
-  initAuth(); // Initialize Firebase Auth
+  renderTodayTree();
   
   // Resume timer if it was running
   if (state.timerState && state.timerState.running) {
       const idx = getTodayIndex();
       if (idx !== null) {
-          // Calculate elapsed time while closed (optional: currently we just resume from where we left off)
-          // If you want to count background time:
-          // const elapsed = Math.floor((Date.now() - state.timerState.startTime) / 1000);
-          // timer.sec = state.timerState.startTotalSeconds + elapsed;
-          
-          // For now, we just restore the state and resume counting
-          timer.sec = state.days[idx]; // Ensure we start from saved day value
-          timer.running = false; // Reset to false so startTimer can run
-          startTimer();
-          
-          // Restore session start
+          timer.sec = state.days[idx]; 
+          if (!timer.running) {
+              startTimer();
+          }
           timer.sessionStart = state.timerState.sessionStartISO;
       }
   } else {
+      if (timer.running) pauseTimer();
       _("#pauseBtn").disabled = true;
   }
+}
+
+function init() {
+  loadState();
+  backfillForest(); // Ensure past completed days have trees
+  renderAll();
+
+  // Register a single beforeunload handler once to persist state on close
+  if (!window.__saveListenerAdded) {
+    window.addEventListener("beforeunload", () => {
+      if (timer.running) {
+          const idx = getTodayIndex();
+          if (idx !== null) {
+              state.days[idx] = timer.sec;
+              // Update timer state one last time
+              state.timerState.startTotalSeconds = timer.sec;
+              state.timerState.startTime = Date.now(); // Reset start time to now so resume works correctly
+          }
+      }
+      saveState();
+    });
+    window.__saveListenerAdded = true;
+  }
+
+  bindUI();
+  rotateMotivation();
+  initAuth(); // Initialize Firebase Auth
 }
 
 // Wait for Chart.js to load if it's not ready yet (though script tag is blocking usually)
