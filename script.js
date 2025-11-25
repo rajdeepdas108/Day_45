@@ -80,7 +80,6 @@ function loadState() {
   if (raw) {
     try {
       const local = JSON.parse(raw);
-      // Merge to ensure new fields exist
       state = { ...state, ...local };
     } catch (e) {
       console.warn("State corrupted, resetting...");
@@ -90,6 +89,24 @@ function loadState() {
   }
   updateReminderButton();
 }
+
+// Sync state across tabs
+window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEY) {
+        const remote = JSON.parse(e.newValue);
+        // If we are idle, accept the remote state to stay in sync
+        if (!timer.running) {
+            state = remote;
+            // Update UI without full re-render loop
+            const idx = getTodayIndex();
+            if (idx !== null) {
+                timer.sec = state.days[idx];
+                _("#displayTimer").textContent = formatTime(timer.sec);
+                updateSummary();
+            }
+        }
+    }
+});
 
 function saveState() {
   state.updatedAt = Date.now();
@@ -435,7 +452,7 @@ function loadTodayTimer() {
   _("#displayTimer").textContent = formatTime(timer.sec);
 }
 
-function startTimer() {
+function startTimer(resume = false) {
   if (timer.running) return;
   
   const idx = getTodayIndex();
@@ -445,7 +462,14 @@ function startTimer() {
   }
 
   timer.running = true;
-  timer.sessionStart = new Date().toISOString();
+  
+  // If resuming from a reload, keep the original session start. 
+  // If starting fresh (or resume=false), create new session start.
+  if (resume && state.timerState && state.timerState.sessionStartISO) {
+      timer.sessionStart = state.timerState.sessionStartISO;
+  } else {
+      timer.sessionStart = new Date().toISOString();
+  }
   
   // Fix for background throttling:
   // Store the timestamp when we started, and the total seconds at that moment.
@@ -487,7 +511,8 @@ function startTimer() {
           updateSummary();
           renderTodayTree(); // Update tree growth in real-time
         }
-
+        
+        // ... existing checks ...
         if (timer.sec === GOAL_HOURS * 3600) {
           sendNotification("Goal Reached!", "You've studied for 8 hours today!");
           showMotivation("Wow! You completed 8 hours today!");
@@ -986,7 +1011,7 @@ _("#treeModal").onclick = (e) => {
 // =============================
 
 function bindUI() {
-  _("#startBtn").onclick = startTimer;
+  _("#startBtn").onclick = () => startTimer(false);
   _("#pauseBtn").onclick = pauseTimer;
   _("#resetTimerBtn").onclick = resetTimer;
 
@@ -1130,9 +1155,8 @@ function renderAll() {
       if (idx !== null) {
           timer.sec = state.days[idx]; 
           if (!timer.running) {
-              startTimer();
+              startTimer(true); // Resume
           }
-          timer.sessionStart = state.timerState.sessionStartISO;
       }
   } else {
       if (timer.running) pauseTimer();
