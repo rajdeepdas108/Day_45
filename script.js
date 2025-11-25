@@ -581,7 +581,13 @@ function exportCSV() {
   state.days.forEach((sec, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
+    
+    // Use local date components to avoid timezone shifts
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
     const hrs = toHours(sec);
     const status = hrs >= GOAL_HOURS ? "Completed" : "Incomplete";
     csvContent += `${i + 1},${dateStr},${hrs},${status}\n`;
@@ -611,7 +617,13 @@ function exportPDF() {
       const start = new Date(state.startDate + "T00:00:00");
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      const dateStr = d.toISOString().slice(0, 10);
+      
+      // Use local date components to avoid timezone shifts
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+      
       const hrs = toHours(sec);
       return [i + 1, dateStr, hrs.toFixed(2), hrs >= GOAL_HOURS ? "Yes" : "No"];
   });
