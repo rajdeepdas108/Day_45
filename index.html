@@ -38,6 +38,7 @@
       </div>
       <h1>45-Day Study Challenge</h1>
       <div class="controls">
+        <button id="forestBtn" class="btn ghost">🌲 Forest</button>
         <button id="styleBtn" class="btn ghost">🎨 Style: Modern</button>
         <button id="notifyBtn" class="btn ghost">🔔 Reminders: Off</button>
         <button id="themeBtn" class="btn ghost">Theme</button>
@@ -56,7 +57,13 @@
         </div>
 
         <div class="today-box">
-          <div class="small">Today's hours</div>
+          <div class="small">Today's Tree</div>
+          <div id="todayTreeContainer" class="tree-container">
+            <!-- Tree SVG will be injected here -->
+          </div>
+          <div class="small" style="text-align:center; margin-top:10px;" id="treeStageLabel">Seedling</div>
+          
+          <div class="small" style="margin-top:20px;">Today's hours</div>
           <div class="today-hours" id="todayHours">0.00 hrs</div>
           <div class="progress"><i id="hourProgress"></i></div>
           <div class="small">Goal: 8.00 hrs</div>
@@ -105,6 +112,17 @@
         </div>
 
         <div class="grid" id="daysGrid"></div>
+        
+        <!-- Forest Gallery Section (Hidden by default) -->
+        <div class="forest-gallery hidden" id="forestGallery">
+            <div class="forest-header">
+                <h2>Your Digital Forest</h2>
+                <p>A new tree grows for every day you complete your goal.</p>
+            </div>
+            <div class="forest-grid" id="forestGrid">
+                <!-- Trees will be rendered here -->
+            </div>
+        </div>
 
         <div class="stats">
           <div class="stat">
@@ -126,6 +144,29 @@
     </div>
 
     <footer>Built for focus • Offline support • Data stored locally</footer>
+  </div>
+
+  <!-- Tree Detail Modal -->
+  <div id="treeModal" class="modal-overlay hidden">
+    <div class="modal-content glass-panel">
+        <button class="close-modal" id="closeTreeModal">×</button>
+        <div class="modal-tree-view" id="modalTreeView">
+            <!-- Animated Tree Here -->
+        </div>
+        <h2 id="modalTreeTitle">Tree of Day 1</h2>
+        <p id="modalTreeDate">Nov 25, 2025</p>
+        <div class="modal-stats">
+            <div class="m-stat">
+                <span class="label">Hours</span>
+                <span class="value" id="modalTreeHours">8.00</span>
+            </div>
+            <div class="m-stat">
+                <span class="label">Type</span>
+                <span class="value" id="modalTreeType">Oak</span>
+            </div>
+        </div>
+        <button id="deleteTreeBtn" class="btn danger" style="margin-top: 20px;">Delete Tree</button>
+    </div>
   </div>
 </body>
 </html>

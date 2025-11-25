@@ -61,6 +61,7 @@ let state = {
   startDate: null,
   days: Array(DAYS).fill(0),
   sessions: [], // { dayIndex, startISO, endISO, seconds }
+  forest: [], // { id, date, dayIndex, growthStage, type, createdAt }
   theme: "light",
   remindersEnabled: false,
   updatedAt: 0
@@ -424,11 +425,13 @@ function startTimer() {
               saveState(); 
           }
           updateSummary();
+          renderTodayTree(); // Update tree growth in real-time
         }
 
         if (timer.sec === GOAL_HOURS * 3600) {
           sendNotification("Goal Reached!", "You've studied for 8 hours today!");
           showMotivation("Wow! You completed 8 hours today!");
+          plantTree(idx); // Plant tree when goal reached
         }
 
         // Hourly Reminder
@@ -640,6 +643,265 @@ function exportPDF() {
 }
 
 // =============================
+// Tree & Forest Logic
+// =============================
+
+const TREE_STAGES = 5;
+
+// SVG Generators for Tree Stages
+function getTreeSVG(stage, type = 'normal') {
+    const colors = {
+        normal: { trunk: '#8B5A2B', leaf: '#34C759', leafDark: '#248A3D' },
+        golden: { trunk: '#B8860B', leaf: '#FFD700', leafDark: '#DAA520' },
+        crystal: { trunk: '#5F9EA0', leaf: '#A7FFE4', leafDark: '#40E0D0' },
+        mythic: { trunk: '#4B0082', leaf: '#AB7CFF', leafDark: '#8A2BE2' }
+    };
+    
+    const c = colors[type] || colors.normal;
+    
+    // Stage 1: Sprout
+    if (stage === 1) return `
+        <svg viewBox="0 0 100 100" class="tree-svg grow-pop">
+            <path d="M50 90 Q50 70 40 60" stroke="${c.leaf}" stroke-width="3" fill="none" />
+            <path d="M50 90 Q50 75 60 65" stroke="${c.leaf}" stroke-width="3" fill="none" />
+            <ellipse cx="40" cy="60" rx="5" ry="8" fill="${c.leaf}" transform="rotate(-20 40 60)" />
+            <ellipse cx="60" cy="65" rx="5" ry="8" fill="${c.leaf}" transform="rotate(20 60 65)" />
+        </svg>`;
+
+    // Stage 2: Seedling
+    if (stage === 2) return `
+        <svg viewBox="0 0 100 100" class="tree-svg grow-pop">
+            <path d="M50 90 L50 60" stroke="${c.trunk}" stroke-width="4" stroke-linecap="round" />
+            <path d="M50 70 Q30 60 35 50" stroke="${c.leaf}" stroke-width="3" fill="none" />
+            <path d="M50 75 Q70 65 65 55" stroke="${c.leaf}" stroke-width="3" fill="none" />
+            <circle cx="35" cy="50" r="6" fill="${c.leaf}" />
+            <circle cx="65" cy="55" r="6" fill="${c.leaf}" />
+            <circle cx="50" cy="55" r="8" fill="${c.leafDark}" />
+        </svg>`;
+
+    // Stage 3: Sapling
+    if (stage === 3) return `
+        <svg viewBox="0 0 100 100" class="tree-svg grow-pop">
+            <path d="M50 90 L50 50" stroke="${c.trunk}" stroke-width="6" stroke-linecap="round" />
+            <circle cx="50" cy="45" r="20" fill="${c.leaf}" />
+            <circle cx="40" cy="55" r="15" fill="${c.leafDark}" opacity="0.8" />
+            <circle cx="60" cy="55" r="15" fill="${c.leafDark}" opacity="0.8" />
+        </svg>`;
+
+    // Stage 4: Young Tree
+    if (stage === 4) return `
+        <svg viewBox="0 0 100 100" class="tree-svg grow-pop sway">
+            <path d="M50 90 L50 40" stroke="${c.trunk}" stroke-width="8" stroke-linecap="round" />
+            <path d="M50 40 L30 20" stroke="${c.trunk}" stroke-width="4" />
+            <path d="M50 40 L70 20" stroke="${c.trunk}" stroke-width="4" />
+            <circle cx="50" cy="30" r="25" fill="${c.leaf}" />
+            <circle cx="30" cy="40" r="18" fill="${c.leafDark}" />
+            <circle cx="70" cy="40" r="18" fill="${c.leafDark}" />
+            <circle cx="50" cy="15" r="15" fill="${c.leaf}" />
+        </svg>`;
+
+    // Stage 5: Mature Tree
+    return `
+        <svg viewBox="0 0 100 100" class="tree-svg grow-pop sway">
+            <path d="M50 95 L50 40" stroke="${c.trunk}" stroke-width="10" stroke-linecap="round" />
+            <circle cx="50" cy="35" r="30" fill="${c.leaf}" />
+            <circle cx="25" cy="50" r="20" fill="${c.leafDark}" />
+            <circle cx="75" cy="50" r="20" fill="${c.leafDark}" />
+            <circle cx="35" cy="25" r="22" fill="${c.leaf}" />
+            <circle cx="65" cy="25" r="22" fill="${c.leaf}" />
+            ${type === 'golden' ? '<circle cx="50" cy="35" r="35" fill="url(#goldGrad)" opacity="0.3"/>' : ''}
+            ${type === 'mythic' ? '<circle cx="50" cy="35" r="40" stroke="#AB7CFF" stroke-width="1" fill="none" opacity="0.5"/>' : ''}
+        </svg>`;
+}
+
+function getTreeStage(seconds) {
+    const progress = Math.min(seconds / (GOAL_HOURS * 3600), 1);
+    if (progress < 0.2) return 1;
+    if (progress < 0.4) return 2;
+    if (progress < 0.6) return 3;
+    if (progress < 0.8) return 4;
+    return 5;
+}
+
+function getTreeType(streak) {
+    if (streak >= 20) return 'mythic';
+    if (streak >= 10) return 'crystal';
+    if (streak >= 5) return 'golden';
+    return 'normal';
+}
+
+function renderTodayTree() {
+    const idx = getTodayIndex();
+    if (idx === null) return;
+    
+    const sec = state.days[idx];
+    const stage = getTreeStage(sec);
+    const streak = computeStreaks().current;
+    const type = getTreeType(streak);
+    
+    const container = _("#todayTreeContainer");
+    const label = _("#treeStageLabel");
+    
+    // Only update if changed to avoid re-animating constantly
+    const currentStage = container.dataset.stage;
+    if (currentStage != stage) {
+        container.innerHTML = getTreeSVG(stage, type);
+        container.dataset.stage = stage;
+        
+        const names = ["Seed Sprout 🌱", "Small Plant 🌿", "Sapling 🌳", "Young Tree 🌲", "Mature Tree 🌳✨"];
+        label.textContent = names[stage - 1];
+        
+        if (stage === 5 && currentStage != 5) {
+            // Celebration
+            showMotivation("Tree Fully Grown! 🌳✨");
+            // Plant tree logic handled in timer loop or markComplete
+        }
+    }
+}
+
+function plantTree(dayIndex) {
+    // Check if tree already exists for this day
+    if (state.forest.some(t => t.dayIndex === dayIndex)) return;
+    
+    const streak = computeStreaks().current;
+    const type = getTreeType(streak);
+    
+    const tree = {
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2), // Ensure unique ID
+        dayIndex: dayIndex,
+        date: new Date().toISOString().slice(0, 10),
+        growthStage: 5,
+        type: type,
+        createdAt: Date.now()
+    };
+    
+    state.forest.push(tree);
+    saveState();
+    renderForest();
+    
+    // Show modal celebration
+    openTreeModal(tree);
+}
+
+function backfillForest() {
+    // Check for completed days that don't have trees yet
+    let added = false;
+    for (let i = 0; i < DAYS; i++) {
+        if (state.days[i] / 3600 >= GOAL_HOURS) {
+            if (!state.forest.some(t => t.dayIndex === i)) {
+                // Create a tree without showing modal
+                const streak = 0; // We can't easily calculate historical streak per day without replay, defaulting to normal
+                // Or we could try to estimate type based on current streak if it was recent, but simple is better.
+                // Let's just make them normal trees for backfill.
+                
+                const tree = {
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2) + i,
+                    dayIndex: i,
+                    date: new Date().toISOString().slice(0, 10), // We don't have exact date easily unless we calc it
+                    growthStage: 5,
+                    type: 'normal',
+                    createdAt: Date.now()
+                };
+                
+                // Calculate correct date for that day
+                if (state.startDate) {
+                    const start = new Date(state.startDate + "T00:00:00");
+                    const d = new Date(start);
+                    d.setDate(start.getDate() + i);
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    tree.date = `${year}-${month}-${day}`;
+                }
+
+                state.forest.push(tree);
+                added = true;
+            }
+        }
+    }
+    if (added) {
+        saveState();
+        renderForest();
+    }
+}
+
+function renderForest() {
+    const grid = _("#forestGrid");
+    grid.innerHTML = "";
+    
+    state.forest.forEach(tree => {
+        const el = document.createElement("div");
+        el.className = `tree-card ${tree.type}`;
+        el.innerHTML = `
+            <div class="tree-preview">${getTreeSVG(5, tree.type)}</div>
+            <div class="tree-info">
+                <div class="day-num">Day ${tree.dayIndex + 1}</div>
+                <div class="date">${tree.date}</div>
+            </div>
+        `;
+        el.onclick = () => openTreeModal(tree);
+        grid.appendChild(el);
+    });
+}
+
+function deleteTree(treeId) {
+    if (!confirm("Are you sure you want to delete this tree? This cannot be undone.")) return;
+    
+    state.forest = state.forest.filter(t => t.id !== treeId);
+    saveState();
+    renderForest();
+    _("#treeModal").classList.add("hidden");
+}
+
+function openTreeModal(tree) {
+    const modal = _("#treeModal");
+    const view = _("#modalTreeView");
+    
+    view.innerHTML = getTreeSVG(5, tree.type);
+    _("#modalTreeTitle").textContent = `Tree of Day ${tree.dayIndex + 1}`;
+    _("#modalTreeDate").textContent = tree.date;
+    _("#modalTreeType").textContent = tree.type.charAt(0).toUpperCase() + tree.type.slice(1);
+    
+    // Find hours for that day
+    const hours = toHours(state.days[tree.dayIndex]);
+    _("#modalTreeHours").textContent = hours.toFixed(2);
+    
+    // Bind delete button
+    _("#deleteTreeBtn").onclick = () => deleteTree(tree.id);
+    
+    modal.classList.remove("hidden");
+}
+
+// Bind Forest UI
+_("#forestBtn").onclick = () => {
+    const gallery = _("#forestGallery");
+    const grid = _("#daysGrid");
+    const btn = _("#forestBtn");
+    
+    if (gallery.classList.contains("hidden")) {
+        gallery.classList.remove("hidden");
+        grid.classList.add("hidden");
+        btn.classList.add("active");
+        renderForest();
+    } else {
+        gallery.classList.add("hidden");
+        grid.classList.remove("hidden");
+        btn.classList.remove("active");
+    }
+};
+
+_("#closeTreeModal").onclick = () => {
+    _("#treeModal").classList.add("hidden");
+};
+
+// Close modal on outside click
+_("#treeModal").onclick = (e) => {
+    if (e.target === _("#treeModal")) {
+        _("#treeModal").classList.add("hidden");
+    }
+};
+
+// =============================
 // UI Bindings
 // =============================
 
@@ -663,6 +925,8 @@ function bindUI() {
       saveState();
       updateSummary();
       loadTodayTimer();
+      renderTodayTree(); // Update visual
+      plantTree(t); // Plant tree immediately
       showMotivation("Day marked as complete! Great work.");
     }
   };
@@ -772,11 +1036,13 @@ function applyDesign() {
 
 function init() {
   loadState();
+  backfillForest(); // Ensure past completed days have trees
   applyTheme();
   applyDesign();
   _("#startDateInput").value = state.startDate;
   loadTodayTimer();
   updateSummary();
+  renderTodayTree(); // Initial render
   bindUI();
   rotateMotivation();
   initAuth(); // Initialize Firebase Auth
