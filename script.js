@@ -74,6 +74,15 @@ let state = {
   }
 };
 
+// Helper to get local date string YYYY-MM-DD
+function getLocalDateStr() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Load from LocalStorage first
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -85,7 +94,7 @@ function loadState() {
       console.warn("State corrupted, resetting...");
     }
   } else {
-    state.startDate = new Date().toISOString().slice(0, 10);
+    state.startDate = getLocalDateStr();
   }
   updateReminderButton();
 }
@@ -180,24 +189,61 @@ function signOut() {
 function loadFromCloud() {
   if (!db || !userUid) return;
   
-  db.collection("users").doc(userUid).get().then((doc) => {
+  // Use onSnapshot for real-time updates
+  db.collection("users").doc(userUid).onSnapshot((doc) => {
     if (doc.exists) {
       const remote = doc.data();
-      // Simple conflict resolution: Last write wins based on updatedAt
+      
+      // If remote is newer or we are just loading, sync
       if (remote.updatedAt > (state.updatedAt || 0)) {
-        console.log("Cloud data is newer, syncing...");
+        console.log("Cloud update received:", remote);
+        
+        // Merge state
         state = { ...state, ...remote };
-        saveState(); // Update local storage
-        renderAll(); // Re-render UI
-      } else {
-        console.log("Local data is newer or same.");
+        
+        // Update LocalStorage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        
+        // Handle Timer Sync
+        const idx = getTodayIndex();
+        if (idx !== null) {
+            // If remote says timer is running, we must sync our local timer
+            if (state.timerState && state.timerState.running) {
+                // Calculate elapsed time since the remote start time
+                const now = Date.now();
+                // We trust the remote start time. 
+                // Note: This assumes clocks are roughly synced. 
+                // If remote startTime is in future (clock skew), we clamp elapsed to 0.
+                const elapsed = Math.max(0, Math.floor((now - state.timerState.startTime) / 1000));
+                const syncedSec = state.timerState.startTotalSeconds + elapsed;
+                
+                timer.sec = syncedSec;
+                state.days[idx] = syncedSec; // Update day total
+                
+                // If local timer NOT running, start it
+                if (!timer.running) {
+                    startTimer(true); 
+                } else {
+                    // If already running, just correct the time
+                    timer.startTime = state.timerState.startTime;
+                    timer.startTotalSeconds = state.timerState.startTotalSeconds;
+                }
+            } else {
+                // Remote says timer is stopped
+                if (timer.running) {
+                    pauseTimer(true); // Pass true to skip saving back to cloud immediately
+                }
+                timer.sec = state.days[idx];
+            }
+        }
+        
+        renderAll();
       }
     } else {
-      // First time user in cloud
       saveToCloud();
     }
-  }).catch((error) => {
-    console.error("Error getting document:", error);
+  }, (error) => {
+      console.error("Error getting real-time updates:", error);
   });
 }
 
@@ -463,18 +509,23 @@ function startTimer(resume = false) {
 
   timer.running = true;
   
-  // If resuming from a reload, keep the original session start. 
-  // If starting fresh (or resume=false), create new session start.
+  // If resuming (from reload OR cloud sync), keep the original session start. 
   if (resume && state.timerState && state.timerState.sessionStartISO) {
       timer.sessionStart = state.timerState.sessionStartISO;
+      // If resuming from cloud, we might need to trust the state's startTime
+      if (state.timerState.startTime) {
+          timer.startTime = state.timerState.startTime;
+          timer.startTotalSeconds = state.timerState.startTotalSeconds;
+      } else {
+          timer.startTime = Date.now();
+          timer.startTotalSeconds = timer.sec;
+      }
   } else {
+      // Fresh start
       timer.sessionStart = new Date().toISOString();
+      timer.startTime = Date.now();
+      timer.startTotalSeconds = timer.sec;
   }
-  
-  // Fix for background throttling:
-  // Store the timestamp when we started, and the total seconds at that moment.
-  timer.startTime = Date.now();
-  timer.startTotalSeconds = timer.sec;
   
   // Persist timer state
   state.timerState = {
@@ -495,7 +546,7 @@ function startTimer(resume = false) {
     const elapsed = Math.floor((now - timer.startTime) / 1000);
     const newTotal = timer.startTotalSeconds + elapsed;
     
-    // Only update if time has actually advanced (prevents glitches if system time changes backwards slightly)
+    // Only update if time has actually advanced
     if (newTotal > timer.sec) {
         timer.sec = newTotal;
         _("#displayTimer").textContent = formatTime(timer.sec);
@@ -503,23 +554,23 @@ function startTimer(resume = false) {
         const idx = getTodayIndex();
         if (idx !== null) {
           state.days[idx] = timer.sec;
-          // We don't save to cloud every second, but we update local state
-          // Debounced save is called here to ensure we don't lose too much data on crash
-          if (timer.sec % 60 === 0) {
+          
+          // Sync to cloud periodically (every 30s) to keep 'sec' somewhat updated
+          // But 'startTime' is the real source of truth for other devices
+          if (timer.sec % 30 === 0) {
               saveState(); 
           }
           updateSummary();
-          renderTodayTree(); // Update tree growth in real-time
+          renderTodayTree(); 
         }
         
         // ... existing checks ...
         if (timer.sec === GOAL_HOURS * 3600) {
           sendNotification("Goal Reached!", "You've studied for 8 hours today!");
           showMotivation("Wow! You completed 8 hours today!");
-          plantTree(idx); // Plant tree when goal reached
+          plantTree(idx); 
         }
 
-        // Hourly Reminder
         if (state.remindersEnabled && timer.sec > 0 && timer.sec % 3600 === 0) {
           const hours = timer.sec / 3600;
           sendNotification("Hourly Update", `You've studied for ${hours} hour${hours > 1 ? 's' : ''}. Keep it up!`);
@@ -528,7 +579,7 @@ function startTimer(resume = false) {
   }, 1000);
 }
 
-function pauseTimer() {
+function pauseTimer(skipSave = false) {
   if (!timer.running) return;
   
   clearInterval(timer.id);
@@ -544,7 +595,8 @@ function pauseTimer() {
       startTotalSeconds: 0,
       sessionStartISO: null
   };
-  saveState();
+  
+  if (!skipSave) saveState();
 
   // Log Session
   if (timer.sessionStart) {
@@ -564,9 +616,7 @@ function pauseTimer() {
           };
           state.sessions.push(session);
           
-          // Cloud Sync: Append session using arrayUnion if possible, 
-          // but since we sync whole state object for simplicity in this architecture:
-          saveState();
+          if (!skipSave) saveState();
       }
       timer.sessionStart = null;
   }
