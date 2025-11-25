@@ -503,6 +503,17 @@ const MESSAGES = [
   "Keep going. You're doing great.",
   "Focus on the process, not the outcome.",
   "Every hour counts.",
+  "Success is the sum of small efforts repeated day in and day out.",
+  "The secret of getting ahead is getting started.",
+  "Don't watch the clock; do what it does. Keep going.",
+  "Believe you can and you're halfway there.",
+  "Your future is created by what you do today, not tomorrow.",
+  "It always seems impossible until it's done.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "The only bad workout is the one that didn't happen.",
+  "Dream big. Start small. Act now.",
+  "Action is the foundational key to all success.",
+  "Don't stop when you're tired. Stop when you're done."
 ];
 
 function showMotivation(m) {
