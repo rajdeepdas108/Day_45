@@ -64,7 +64,13 @@ let state = {
   forest: [], // { id, date, dayIndex, growthStage, type, createdAt }
   theme: "light",
   remindersEnabled: false,
-  updatedAt: 0
+  updatedAt: 0,
+  timerState: { // New: Persist timer state
+    running: false,
+    startTime: null,
+    startTotalSeconds: 0,
+    sessionStartISO: null
+  }
 };
 
 // Load from LocalStorage first
@@ -401,6 +407,15 @@ function startTimer() {
   timer.startTime = Date.now();
   timer.startTotalSeconds = timer.sec;
   
+  // Persist timer state
+  state.timerState = {
+      running: true,
+      startTime: timer.startTime,
+      startTotalSeconds: timer.startTotalSeconds,
+      sessionStartISO: timer.sessionStart
+  };
+  saveState();
+
   _("#startBtn").disabled = true;
   _("#pauseBtn").disabled = false;
   _("#startBtn").classList.add("active");
@@ -451,6 +466,15 @@ function pauseTimer() {
   _("#startBtn").disabled = false;
   _("#pauseBtn").disabled = true;
   _("#startBtn").classList.remove("active");
+
+  // Clear persisted timer state
+  state.timerState = {
+      running: false,
+      startTime: null,
+      startTotalSeconds: 0,
+      sessionStartISO: null
+  };
+  saveState();
 
   // Log Session
   if (timer.sessionStart) {
@@ -1034,6 +1058,20 @@ function bindUI() {
   _("#notifyBtn").onclick = toggleReminders;
   _("#exportCsvBtn").onclick = exportCSV;
   _("#exportPdfBtn").onclick = exportPDF;
+
+  // Save state before closing to prevent data loss
+  window.addEventListener("beforeunload", () => {
+      if (timer.running) {
+          const idx = getTodayIndex();
+          if (idx !== null) {
+              state.days[idx] = timer.sec;
+              // Update timer state one last time
+              state.timerState.startTotalSeconds = timer.sec;
+              state.timerState.startTime = Date.now(); // Reset start time to now so resume works correctly
+          }
+      }
+      saveState();
+  });
 }
 
 // =============================
@@ -1058,8 +1096,26 @@ function init() {
   rotateMotivation();
   initAuth(); // Initialize Firebase Auth
   
-  // Initial button state
-  _("#pauseBtn").disabled = true;
+  // Resume timer if it was running
+  if (state.timerState && state.timerState.running) {
+      const idx = getTodayIndex();
+      if (idx !== null) {
+          // Calculate elapsed time while closed (optional: currently we just resume from where we left off)
+          // If you want to count background time:
+          // const elapsed = Math.floor((Date.now() - state.timerState.startTime) / 1000);
+          // timer.sec = state.timerState.startTotalSeconds + elapsed;
+          
+          // For now, we just restore the state and resume counting
+          timer.sec = state.days[idx]; // Ensure we start from saved day value
+          timer.running = false; // Reset to false so startTimer can run
+          startTimer();
+          
+          // Restore session start
+          timer.sessionStart = state.timerState.sessionStartISO;
+      }
+  } else {
+      _("#pauseBtn").disabled = true;
+  }
 }
 
 // Wait for Chart.js to load if it's not ready yet (though script tag is blocking usually)
