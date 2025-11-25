@@ -372,7 +372,9 @@ let timer = {
   running: false,
   sec: 0,
   id: null,
-  sessionStart: null
+  sessionStart: null,
+  startTime: null,
+  startTotalSeconds: 0
 };
 
 function loadTodayTimer() {
@@ -393,35 +395,47 @@ function startTimer() {
   timer.running = true;
   timer.sessionStart = new Date().toISOString();
   
+  // Fix for background throttling:
+  // Store the timestamp when we started, and the total seconds at that moment.
+  timer.startTime = Date.now();
+  timer.startTotalSeconds = timer.sec;
+  
   _("#startBtn").disabled = true;
   _("#pauseBtn").disabled = false;
   _("#startBtn").classList.add("active");
 
   timer.id = setInterval(() => {
-    timer.sec++;
+    // Calculate elapsed time based on system clock difference
+    const now = Date.now();
+    const elapsed = Math.floor((now - timer.startTime) / 1000);
+    const newTotal = timer.startTotalSeconds + elapsed;
+    
+    // Only update if time has actually advanced (prevents glitches if system time changes backwards slightly)
+    if (newTotal > timer.sec) {
+        timer.sec = newTotal;
+        _("#displayTimer").textContent = formatTime(timer.sec);
 
-    _("#displayTimer").textContent = formatTime(timer.sec);
+        const idx = getTodayIndex();
+        if (idx !== null) {
+          state.days[idx] = timer.sec;
+          // We don't save to cloud every second, but we update local state
+          // Debounced save is called here to ensure we don't lose too much data on crash
+          if (timer.sec % 60 === 0) {
+              saveState(); 
+          }
+          updateSummary();
+        }
 
-    const idx = getTodayIndex();
-    if (idx !== null) {
-      state.days[idx] = timer.sec;
-      // We don't save to cloud every second, but we update local state
-      // Debounced save is called here to ensure we don't lose too much data on crash
-      if (timer.sec % 60 === 0) {
-          saveState(); 
-      }
-      updateSummary();
-    }
+        if (timer.sec === GOAL_HOURS * 3600) {
+          sendNotification("Goal Reached!", "You've studied for 8 hours today!");
+          showMotivation("Wow! You completed 8 hours today!");
+        }
 
-    if (timer.sec === GOAL_HOURS * 3600) {
-      sendNotification("Goal Reached!", "You've studied for 8 hours today!");
-      showMotivation("Wow! You completed 8 hours today!");
-    }
-
-    // Hourly Reminder
-    if (state.remindersEnabled && timer.sec > 0 && timer.sec % 3600 === 0) {
-      const hours = timer.sec / 3600;
-      sendNotification("Hourly Update", `You've studied for ${hours} hour${hours > 1 ? 's' : ''}. Keep it up!`);
+        // Hourly Reminder
+        if (state.remindersEnabled && timer.sec > 0 && timer.sec % 3600 === 0) {
+          const hours = timer.sec / 3600;
+          sendNotification("Hourly Update", `You've studied for ${hours} hour${hours > 1 ? 's' : ''}. Keep it up!`);
+        }
     }
   }, 1000);
 }
@@ -625,7 +639,15 @@ function bindUI() {
   _("#markComplete").onclick = () => {
     const t = getTodayIndex();
     if (t !== null) {
-      state.days[t] = GOAL_HOURS * 3600;
+      const newSec = GOAL_HOURS * 3600;
+      state.days[t] = newSec;
+
+      if (timer.running) {
+          timer.sec = newSec;
+          timer.startTime = Date.now();
+          timer.startTotalSeconds = newSec;
+      }
+
       saveState();
       updateSummary();
       loadTodayTimer();
@@ -642,7 +664,17 @@ function bindUI() {
     if (input === null) return;
 
     const h = Math.min(parseFloat(input), 24); // Max 24 hours
-    state.days[idx] = h * 3600;
+    const newSec = Math.floor(h * 3600);
+    state.days[idx] = newSec;
+
+    // Fix: If timer is running, sync it so it doesn't overwrite the manual edit
+    if (timer.running && idx === getTodayIndex()) {
+        timer.sec = newSec;
+        timer.startTime = Date.now();
+        timer.startTotalSeconds = newSec;
+        _("#displayTimer").textContent = formatTime(timer.sec);
+    }
+
     saveState();
     updateSummary();
   };
@@ -656,7 +688,17 @@ function bindUI() {
 
       if (input !== null) {
         const h = Math.min(parseFloat(input), 24);
-        state.days[idx] = h * 3600;
+        const newSec = Math.floor(h * 3600);
+        state.days[idx] = newSec;
+
+        // Fix: If timer is running AND we are editing today's card
+        if (timer.running && idx === getTodayIndex()) {
+            timer.sec = newSec;
+            timer.startTime = Date.now();
+            timer.startTotalSeconds = newSec;
+            _("#displayTimer").textContent = formatTime(timer.sec);
+        }
+
         saveState();
         updateSummary();
       }
