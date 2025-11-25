@@ -1140,25 +1140,51 @@ function renderAll() {
   }
 }
 
+function setupPersistence() {
+  const handleSave = () => {
+    if (timer.running) {
+        // Force update timer one last time to capture latest second
+        const now = Date.now();
+        const elapsed = Math.floor((now - timer.startTime) / 1000);
+        const newTotal = timer.startTotalSeconds + elapsed;
+        
+        if (newTotal > timer.sec) {
+            timer.sec = newTotal;
+        }
+        
+        const idx = getTodayIndex();
+        if (idx !== null) {
+            state.days[idx] = timer.sec;
+            // Update timer state for resume
+            state.timerState = {
+                running: true,
+                startTime: Date.now(),
+                startTotalSeconds: timer.sec,
+                sessionStartISO: timer.sessionStart
+            };
+        }
+    }
+    saveState();
+  };
+
+  // Multiple hooks to ensure saving on mobile/desktop
+  window.addEventListener("beforeunload", handleSave);
+  window.addEventListener("pagehide", handleSave);
+  document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === 'hidden') {
+          handleSave();
+      }
+  });
+}
+
 function init() {
   loadState();
   backfillForest(); // Ensure past completed days have trees
   renderAll();
 
-  // Register a single beforeunload handler once to persist state on close
+  // Setup robust persistence
   if (!window.__saveListenerAdded) {
-    window.addEventListener("beforeunload", () => {
-      if (timer.running) {
-          const idx = getTodayIndex();
-          if (idx !== null) {
-              state.days[idx] = timer.sec;
-              // Update timer state one last time
-              state.timerState.startTotalSeconds = timer.sec;
-              state.timerState.startTime = Date.now(); // Reset start time to now so resume works correctly
-          }
-      }
-      saveState();
-    });
+    setupPersistence();
     window.__saveListenerAdded = true;
   }
 
